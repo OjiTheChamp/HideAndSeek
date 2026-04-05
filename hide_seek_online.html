@@ -1,0 +1,845 @@
+// ── CHAT ─────────────────────────────────────────────────────<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Hide & Seek</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#1a1a2e;color:#eee;font-family:'Segoe UI',sans-serif;overflow:hidden;height:100vh;display:flex;align-items:center;justify-content:center;}
+#ui{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;z-index:10;background:#1a1a2e;}
+.card{background:#16213e;border:1px solid #0f3460;border-radius:16px;padding:28px;width:min(440px,92vw);box-shadow:0 8px 32px #0008;}
+h1{font-size:2rem;text-align:center;color:#e94560;margin-bottom:4px;}
+.sub{text-align:center;color:#aaa;margin-bottom:16px;font-size:.9rem;}
+label{display:block;font-size:.8rem;color:#aaa;margin-bottom:4px;margin-top:12px;}
+input,select{width:100%;padding:10px 14px;border-radius:8px;border:1px solid #0f3460;background:#0d1b36;color:#fff;font-size:1rem;outline:none;}
+input:focus,select:focus{border-color:#e94560;}
+.row{display:flex;gap:10px;margin-top:14px;}
+button{flex:1;padding:11px;border-radius:8px;border:none;font-size:.95rem;font-weight:700;cursor:pointer;transition:.2s;}
+.btn-red{background:#e94560;color:#fff;}.btn-red:hover{background:#c73652;}
+.btn-blue{background:#0f3460;color:#fff;}.btn-blue:hover{background:#1a4a80;}
+.btn-green{background:#2d6a4f;color:#fff;}.btn-green:hover{background:#40916c;}
+.btn-gold{background:#f4a261;color:#1a1a2e;}.btn-gold:hover{background:#e07a3a;}
+.btn-disabled{background:#333;color:#666;cursor:not-allowed;}
+.stitle{font-size:.7rem;text-transform:uppercase;letter-spacing:2px;color:#e94560;margin-top:16px;margin-bottom:4px;}
+#winsBar{display:flex;align-items:center;gap:10px;background:#0d1b36;border-radius:10px;padding:8px 14px;margin-bottom:14px;}
+#winsBar .count{font-size:1.1rem;font-weight:900;color:#f4a261;}
+#roomInfo{display:none;text-align:center;margin-top:14px;padding:12px;background:#0d1b36;border-radius:8px;}
+#roomInfo .code{font-size:2rem;font-weight:900;color:#e94560;letter-spacing:4px;}
+#modeSelect{display:none;margin-top:14px;}
+.shoe-card{background:#0d1b36;border:1px solid #0f3460;border-radius:10px;padding:10px;margin-top:8px;display:flex;align-items:center;gap:10px;}
+.shoe-card.equipped{border-color:#40916c;}
+.shoe-card .icon{font-size:1.8rem;}
+.shoe-card .info{flex:1;}.shoe-card .sname{font-weight:700;font-size:.9rem;}
+.shoe-card .sdesc{font-size:.72rem;color:#aaa;}.shoe-card .price{font-size:.78rem;color:#f4a261;font-weight:700;}
+.shoe-card button{flex:0 0 72px;font-size:.82rem;padding:7px;}
+#gameCanvas{display:none;position:fixed;top:0;left:0;}
+#hud{display:none;position:fixed;top:0;left:0;width:100%;padding:8px 16px;background:#00000099;justify-content:space-between;align-items:center;z-index:5;pointer-events:none;}
+#hud.on{display:flex;}
+#msg{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#000d;color:#fff;padding:24px 40px;border-radius:14px;font-size:1.3rem;font-weight:700;display:none;z-index:20;text-align:center;line-height:1.8;}
+#msg button{margin-top:14px;padding:10px 24px;border-radius:8px;background:#e94560;color:#fff;border:none;font-size:1rem;cursor:pointer;display:block;width:100%;}
+#dpad{display:none;position:fixed;bottom:30px;left:30px;z-index:6;width:160px;height:160px;}
+#dpad button{width:52px;height:52px;border-radius:8px;background:#ffffff22;border:1px solid #fff4;color:#fff;font-size:1.4rem;position:absolute;pointer-events:all;}
+#dpad button:active{background:#ffffff44;}
+#chatToggle{display:none;position:fixed;bottom:10px;right:10px;z-index:8;padding:8px 14px;background:#0f3460;border:none;color:#fff;border-radius:10px;cursor:pointer;font-size:.85rem;font-weight:700;}
+#chatBox{display:none;position:fixed;bottom:10px;right:10px;z-index:7;width:260px;background:#00000099;border:1px solid #0f3460;border-radius:12px;overflow:hidden;}
+#chatLog{height:140px;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:4px;}
+#chatLog .cmsg{font-size:.78rem;line-height:1.3;word-break:break-word;}
+#chatLog .cmsg .who{font-weight:700;}
+#chatInput{display:flex;border-top:1px solid #0f3460;}
+#chatInput input{flex:1;background:#0d1b36;border:none;color:#fff;padding:7px 10px;font-size:.82rem;outline:none;}
+#chatInput button{padding:7px 12px;background:#e94560;border:none;color:#fff;font-weight:700;cursor:pointer;}
+#adminPanel{position:fixed;top:10px;right:10px;z-index:999;background:#0d1b36;border:2px solid #e94560;border-radius:10px;padding:8px 10px;width:200px;font-size:.72rem;color:#eee;display:none;}
+#adminPanel .atitle{font-weight:900;color:#e94560;margin-bottom:6px;font-size:.8rem;}
+#adminPanel label{font-size:.65rem;color:#aaa;margin-top:5px;margin-bottom:2px;}
+.arow{display:flex;gap:4px;margin-bottom:4px;}
+.arow input{padding:3px 6px;font-size:.7rem;}
+.arow button{flex:0 0 auto;padding:3px 6px;font-size:.68rem;border-radius:5px;border:none;cursor:pointer;font-weight:700;}
+.hint{font-size:.75rem;color:#666;margin-top:6px;}
+</style>
+</head>
+<body>
+<div id="ui">
+  <div class="card">
+    <h1>🕵️ Hide & Seek</h1>
+    <p class="sub">Play, win, buy shoes, go faster</p>
+    <div id="winsBar">
+      <span style="font-size:1.3rem;">🏆</span>
+      <span class="count" id="winsCount">0</span>
+      <span style="color:#aaa;font-size:.85rem;">wins</span>
+      <button class="btn-gold" style="flex:0 0 auto;padding:6px 14px;font-size:.82rem;" onclick="showShop()">👟 Shop</button>
+    </div>
+
+    <div id="mainMenu">
+      <label>Your Name</label>
+      <input id="nameIn" type="text" placeholder="Enter your name" maxlength="30">
+      <div class="row">
+        <button class="btn-green" onclick="showBots()">🤖 vs Bots</button>
+        <button class="btn-red" onclick="showOnline()">🌍 Online</button>
+      </div>
+    </div>
+
+    <div id="shopPanel" style="display:none;">
+      <div class="stitle">👟 Shoe Shop</div>
+      <div id="shoeList"></div>
+      <div class="row"><button class="btn-blue" onclick="closeShop()">← Back</button></div>
+    </div>
+
+    <div id="botsPanel" style="display:none;">
+      <div class="stitle">Bot Settings</div>
+      <label>Your Role</label>
+      <select id="botRole"><option value="seeker">👁️ I'm the Seeker</option><option value="hider">🫥 I'm a Hider</option></select>
+      <label>Number of Bots</label>
+      <select id="botCount"><option value="3">3 bots</option><option value="5" selected>5 bots</option><option value="8">8 bots</option><option value="12">12 bots</option></select>
+      <label>Bot Difficulty</label>
+      <select id="botDiff"><option value="easy">🐢 Easy</option><option value="normal" selected>⚡ Normal</option><option value="hard">🔥 Hard</option></select>
+      <div class="row">
+        <button class="btn-green" onclick="startBotsGame()">▶ Start</button>
+        <button class="btn-blue" onclick="backMain()">← Back</button>
+      </div>
+    </div>
+
+    <div id="onlinePanel" style="display:none;">
+      <div id="ablySetup">
+        <label>Ably API Key <span style="color:#666;font-size:.72rem;">(only needed once)</span></label>
+        <input id="ablyKey" type="password" placeholder="Paste your key here">
+        <button class="btn-gold" style="margin-top:8px;width:100%;padding:10px;" onclick="saveAblyKey()">💾 Save Key</button>
+      </div>
+      <div id="ablyReady" style="display:none;background:#0d1b36;border-radius:8px;padding:8px;margin-bottom:10px;font-size:.8rem;color:#2ec4b6;">✅ Ably key saved! <span style="color:#666;cursor:pointer;float:right;" onclick="resetAblyKey()">Change</span></div>
+      <div class="row">
+        <button class="btn-red" onclick="hostGame()">🏠 Host</button>
+        <button class="btn-blue" onclick="showJoin()">🔗 Join</button>
+        <button class="btn-blue" onclick="backMain()" style="flex:.5;">←</button>
+      </div>
+    </div>
+
+    <div id="joinPanel" style="display:none;">
+      <label>Room Code</label>
+      <input id="codeIn" type="text" placeholder="4-letter code" maxlength="4" style="text-transform:uppercase;font-size:1.4rem;letter-spacing:4px;text-align:center;">
+      <div class="row">
+        <button class="btn-blue" onclick="joinGame()">Join →</button>
+        <button class="btn-red" onclick="showOnline()">← Back</button>
+      </div>
+    </div>
+
+    <div id="roomInfo">
+      <div style="font-size:.82rem;color:#aaa;">Room Code</div>
+      <div class="code" id="codeDisplay"></div>
+      <div style="font-size:.72rem;color:#666;margin-top:4px;">Share with friends</div>
+      <div id="playerList" style="margin-top:8px;font-size:.82rem;color:#aaa;"></div>
+      <div id="modeSelect">
+        <label style="margin-top:10px;color:#aaa;">Your role:</label>
+        <div class="row" style="margin-top:6px;">
+          <button class="btn-red" onclick="startOnlineGame('seeker')">👁️ Seeker</button>
+          <button class="btn-blue" onclick="startOnlineGame('hider')">🫥 Hider</button>
+        </div>
+      </div>
+    </div>
+    <div class="hint" id="statusMsg"></div>
+  </div>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="hud">
+  <div id="hudLeft" style="color:#fff;font-weight:700;font-size:.88rem;"></div>
+  <div id="hudRight" style="color:#e94560;font-weight:700;font-size:.95rem;"></div>
+</div>
+
+<div id="msg"></div>
+
+<div id="dpad">
+  <button id="du" style="top:0;left:52px;">▲</button>
+  <button id="dl" style="top:52px;left:0;">◄</button>
+  <button id="dd" style="top:104px;left:52px;">▼</button>
+  <button id="dr" style="top:52px;left:104px;">►</button>
+</div>
+
+<button id="chatToggle" onclick="toggleChat()">💬 Chat</button>
+<div id="chatBox">
+  <div style="padding:6px 10px;background:#0f3460;display:flex;justify-content:space-between;align-items:center;">
+    <span style="font-size:.8rem;font-weight:700;">💬 Chat</span>
+    <button onclick="toggleChat()" style="background:none;border:none;color:#aaa;cursor:pointer;font-size:1rem;flex:0;">✕</button>
+  </div>
+  <div id="chatLog"></div>
+  <div id="chatInput">
+    <input id="chatMsg" maxlength="80" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendChat()">
+    <button onclick="sendChat()">Send</button>
+  </div>
+</div>
+
+<div id="adminPanel">
+  <div class="atitle">🛡️ Admin Panel</div>
+  <label>Ban / Temp Ban / Unban</label>
+  <div class="arow">
+    <input id="banName" placeholder="Player name">
+    <button style="background:#e94560;color:#fff;" onclick="adminBan()">Perm</button>
+    <button style="background:#e94560;color:#fff;" onclick="adminUnban()">Unban</button>
+  </div>
+  <div class="arow">
+    <input id="banMins" type="number" min="1" placeholder="mins" style="width:60px;">
+    <button style="background:#f4a261;color:#1a1a2e;" onclick="adminTempBan()">Temp Ban</button>
+  </div>
+  <label>Grant / Revoke Admin</label>
+  <div class="arow">
+    <input id="adminName" placeholder="Player name">
+    <button style="background:#f4a261;color:#1a1a2e;" onclick="adminGrant()">Grant</button>
+    <button style="background:#0f3460;color:#fff;" onclick="adminRevoke()">Revoke</button>
+  </div>
+  <label>In-Game</label>
+  <div style="display:flex;flex-direction:column;gap:5px;">
+    <button style="background:#2d6a4f;color:#fff;padding:7px;border-radius:6px;border:none;cursor:pointer;font-weight:700;" onclick="adminToggleInvisible()">👻 Toggle Invisible</button>
+    <button style="background:#0f3460;color:#fff;padding:7px;border-radius:6px;border:none;cursor:pointer;font-weight:700;" onclick="adminSwapRole()">🔄 Swap My Role</button>
+    <button style="background:#333;color:#aaa;padding:7px;border-radius:6px;border:none;cursor:pointer;" onclick="document.getElementById('adminPanel').style.display='none'">Hide Panel</button>
+  </div>
+  <div id="adminLog" style="margin-top:6px;font-size:.7rem;color:#aaa;min-height:14px;"></div>
+</div>
+
+<script src="https://cdn.ably.com/lib/ably.min-2.js"></script>
+<script>
+// ── SHOES ─────────────────────────────────────────────────────
+const SHOES=[
+  {id:'sneakers',name:'Sneakers',icon:'👟',desc:'+0.5 speed',bonus:.5,cost:3},
+  {id:'runners', name:'Runners', icon:'🥿',desc:'+1.0 speed',bonus:1.0,cost:8},
+  {id:'cleats',  name:'Cleats',  icon:'⚽',desc:'+1.5 speed',bonus:1.5,cost:16},
+  {id:'rockets', name:'Rocket Boots',icon:'🚀',desc:'+2.5 speed',bonus:2.5,cost:30},
+];
+
+// ── SAVE ──────────────────────────────────────────────────────
+let saveData={wins:0,owned:[],equipped:null};
+function loadSave(){try{const d=JSON.parse(localStorage.getItem('hs_save'));if(d)saveData=d;}catch(e){}refreshWins();}
+function writeSave(){localStorage.setItem('hs_save',JSON.stringify(saveData));}
+function addWin(){saveData.wins++;writeSave();refreshWins();}
+function refreshWins(){document.getElementById('winsCount').textContent=saveData.wins;}
+function getSpeedBonus(){if(!saveData.equipped)return 0;const s=SHOES.find(x=>x.id===saveData.equipped);return s?s.bonus:0;}
+
+// ── SHOP ──────────────────────────────────────────────────────
+function showShop(){hideAll();show('shopPanel');renderShop();}
+function closeShop(){hide('shopPanel');show('mainMenu');}
+function renderShop(){
+  document.getElementById('shoeList').innerHTML='';
+  SHOES.forEach(s=>{
+    const owned=saveData.owned.includes(s.id);
+    const equipped=saveData.equipped===s.id;
+    const canAfford=saveData.wins>=s.cost;
+    let btn='';
+    if(equipped)btn=`<button class="btn-green" disabled>✅ On</button>`;
+    else if(owned)btn=`<button class="btn-blue" onclick="equipShoe('${s.id}')">Equip</button>`;
+    else if(canAfford)btn=`<button class="btn-gold" onclick="buyShoe('${s.id}')">Buy</button>`;
+    else btn=`<button class="btn-disabled" disabled>🔒</button>`;
+    const d=document.createElement('div');
+    d.className='shoe-card'+(equipped?' equipped':'');
+    d.innerHTML=`<div class="icon">${s.icon}</div><div class="info"><div class="sname">${s.name}</div><div class="sdesc">${s.desc}</div><div class="price">${owned?'Owned':'🏆 '+s.cost+' wins'}</div></div>${btn}`;
+    document.getElementById('shoeList').appendChild(d);
+  });
+}
+function buyShoe(id){const s=SHOES.find(x=>x.id===id);if(!s||saveData.wins<s.cost)return;saveData.wins-=s.cost;saveData.owned.push(id);saveData.equipped=id;writeSave();refreshWins();renderShop();}
+function equipShoe(id){saveData.equipped=id;writeSave();renderShop();}
+
+// ── ADMIN ─────────────────────────────────────────────────────
+const OWNER='oji the champ';
+let isAdmin=false,adminInvisible=false,bannedNames=[],tempBans={},grantedAdmins=[];
+localStorage.removeItem('hs_adminpw');
+let adminPassword=null;
+
+function checkAdmin(name){
+  const isOwner=name.toLowerCase()===OWNER;
+  const isGranted=grantedAdmins.includes(name.toLowerCase());
+  if(!isOwner&&!isGranted)return;
+  // show password modal
+  showPwModal(isOwner&&!adminPassword);
+}
+
+function showPwModal(isSetting){
+  const overlay=document.createElement('div');
+  overlay.id='pwOverlay';
+  overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:#000a;z-index:9999;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML=`
+    <div style="background:#16213e;border:2px solid #e94560;border-radius:14px;padding:28px;width:min(340px,88vw);text-align:center;">
+      <div style="font-size:1.5rem;margin-bottom:6px;">🛡️</div>
+      <div style="font-weight:900;color:#e94560;font-size:1.1rem;margin-bottom:16px;">${isSetting?'Set Admin Password':'Enter Admin Password'}</div>
+      <input id="pwInput" type="password" placeholder="Password" style="width:100%;padding:10px;border-radius:8px;border:1px solid #0f3460;background:#0d1b36;color:#fff;font-size:1rem;outline:none;margin-bottom:${isSetting?'10px':'16px'};">
+      ${isSetting?`<input id="pwConfirm" type="password" placeholder="Confirm password" style="width:100%;padding:10px;border-radius:8px;border:1px solid #0f3460;background:#0d1b36;color:#fff;font-size:1rem;outline:none;margin-bottom:16px;">`:''}
+      <div style="display:flex;gap:8px;">
+        <button onclick="submitPw(${isSetting})" style="flex:1;padding:10px;border-radius:8px;background:#e94560;color:#fff;border:none;font-weight:700;cursor:pointer;font-size:.95rem;">✅ Confirm</button>
+        <button onclick="cancelPw()" style="flex:1;padding:10px;border-radius:8px;background:#333;color:#aaa;border:none;cursor:pointer;font-size:.95rem;">Cancel</button>
+      </div>
+      <div id="pwErr" style="color:#e94560;font-size:.8rem;margin-top:8px;"></div>
+    </div>`;
+  document.body.appendChild(overlay);
+  setTimeout(()=>document.getElementById('pwInput').focus(),50);
+  document.getElementById('pwInput').addEventListener('keydown',e=>{if(e.key==='Enter')submitPw(isSetting);});
+}
+
+function submitPw(isSetting){
+  const pw=document.getElementById('pwInput').value;
+  if(!pw){document.getElementById('pwErr').textContent='Enter a password.';return;}
+  if(isSetting){
+    const pw2=document.getElementById('pwConfirm').value;
+    if(pw!==pw2){document.getElementById('pwErr').textContent='Passwords do not match.';return;}
+    adminPassword=pw;
+    localStorage.setItem('hs_adminpw',pw);
+  } else {
+    if(pw!==adminPassword){document.getElementById('pwErr').textContent='❌ Wrong password.';return;}
+  }
+  document.getElementById('pwOverlay').remove();
+  isAdmin=true;
+  document.getElementById('adminPanel').style.display='block';
+}
+
+function cancelPw(){
+  document.getElementById('pwOverlay').remove();
+}
+function alog(t){document.getElementById('adminLog').textContent=t;}
+
+function adminBan(){
+  const n=document.getElementById('banName').value.trim();if(!n)return;
+  bannedNames.push(n.toLowerCase());
+  Object.values(players).forEach(p=>{if(p.name.toLowerCase()===n.toLowerCase()&&p.id!==myId)delete players[p.id];});
+  bots=bots.filter(b=>b.name.toLowerCase()!==n.toLowerCase());
+  alog('Banned: '+n);
+}
+function adminUnban(){
+  const n=document.getElementById('banName').value.trim().toLowerCase();if(!n)return;
+  bannedNames=bannedNames.filter(x=>x!==n);delete tempBans[n];alog('Unbanned: '+n);
+}
+function adminTempBan(){
+  const n=document.getElementById('banName').value.trim();
+  const m=parseInt(document.getElementById('banMins').value)||5;
+  if(!n)return;
+  tempBans[n.toLowerCase()]=Date.now()+m*60000;
+  Object.values(players).forEach(p=>{if(p.name.toLowerCase()===n.toLowerCase()&&p.id!==myId)delete players[p.id];});
+  bots=bots.filter(b=>b.name.toLowerCase()!==n.toLowerCase());
+  alog('Temp banned '+n+' for '+m+'m');
+}
+function adminGrant(){
+  const n=document.getElementById('adminName').value.trim();if(!n)return;
+  if(!grantedAdmins.includes(n.toLowerCase()))grantedAdmins.push(n.toLowerCase());
+  if(myName.toLowerCase()===n.toLowerCase()){isAdmin=true;document.getElementById('adminPanel').style.display='block';}
+  alog('Granted admin: '+n);
+}
+function adminRevoke(){
+  const n=document.getElementById('adminName').value.trim().toLowerCase();if(!n)return;
+  grantedAdmins=grantedAdmins.filter(x=>x!==n);
+  if(myName.toLowerCase()===n&&myName.toLowerCase()!==OWNER){isAdmin=false;document.getElementById('adminPanel').style.display='none';}
+  alog('Revoked admin: '+n);
+}
+function adminToggleInvisible(){adminInvisible=!adminInvisible;if(players[myId])players[myId].inBush=adminInvisible;alog('Invisible: '+adminInvisible);}
+function adminSwapRole(){const me=players[myId];if(!me)return;me.role=me.role==='seeker'?'hider':'seeker';myRole=me.role;alog('Role → '+me.role.toUpperCase());}
+
+function isBanned(name){
+  const n=name.toLowerCase();
+  if(bannedNames.includes(n))return'permanently banned';
+  if(tempBans[n]){if(Date.now()<tempBans[n])return'temp banned for '+Math.ceil((tempBans[n]-Date.now())/60000)+' more minute(s)';delete tempBans[n];}
+  return null;
+}
+
+// ── FILTER ───────────────────────────────────────────────────
+const BAD_PATTERNS=[
+  // addresses / personal info
+  /\b\d+\s+\w+\s+(street|st|avenue|ave|road|rd|lane|ln|drive|dr|blvd|boulevard|place|pl|court|ct)\b/i,
+  /\b\d{5,6}\b/,
+  /\b(\d{1,3}\.){3}\d{1,3}\b/,
+  // profanity
+  /\bf+u+c+k+\b/i,/\bs+h+i+t+\b/i,/\bb+i+t+c+h+\b/i,/\ba+s+s+h+o+l+e+\b/i,
+  /\bc+u+n+t+\b/i,/\bd+i+c+k+\b/i,/\bp+u+s+s+y+\b/i,/\bn+i+g+g+[ae]+r+\b/i,
+  /\bretard\b/i,/\bfaggot\b/i,/\bstupid\b/i,/\bidiot\b/i,/\bmoron\b/i,/\bdumbass\b/i,/\bcrap\b/i,/\bdamn\b/i,/\bbastard\b/i,
+  // bullying / insults
+  /\byou(('re| are))\s+(fat|ugly|stupid|dumb|useless|worthless|idiot|loser|trash|garbage|disgusting|horrible|terrible|awful|pathetic|mean|bad|worst|dumb)\b/i,
+  /\b(you('re| are)|ur)\s+(a\s+)?(fat|ugly|stupid|dumb|useless|worthless|idiot|loser|moron|freak|nerd|noob)\b/i,
+  /\b(go\s+(die|kill\s+yourself)|kys|end\s+yourself)\b/i,
+  /\b(nobody\s+(likes|loves)\s+you|you\s+have\s+no\s+friends)\b/i,
+  /\b(shut\s+up|get\s+lost|go\s+away)\b/i,
+];
+
+function isClean(txt){
+  return !BAD_PATTERNS.some(p=>p.test(txt));
+}
+
+function filterMsg(txt){
+  if(BAD_PATTERNS[0].test(txt)||BAD_PATTERNS[1].test(txt)||BAD_PATTERNS[2].test(txt))
+    return'address';
+  return'profanity';
+}
+let chatOpen=false;
+function toggleChat(){
+  chatOpen=!chatOpen;
+  document.getElementById('chatBox').style.display=chatOpen?'block':'none';
+  document.getElementById('chatToggle').style.display=chatOpen?'none':'block';
+  if(chatOpen){document.getElementById('chatToggle').textContent='💬 Chat';document.getElementById('chatToggle').style.background='#0f3460';document.getElementById('chatMsg').focus();}
+}
+const violations={}; // name -> count
+
+function sendChat(){
+  const inp=document.getElementById('chatMsg');
+  const txt=inp.value.trim();if(!txt)return;inp.value='';
+  if(txt.startsWith('/')&&isAdmin){handleCmd(txt.slice(1).trim());return;}
+  if(!isClean(txt)){
+    const n=myName.toLowerCase();
+    violations[n]=(violations[n]||0)+1;
+    sysmsg('⚠️ Your message was removed: contains inappropriate content.');
+    if(violations[n]===2){
+      tempBans[n]=Date.now()+15*60000;
+      sysmsg('🚫 You have been temp banned for 15 minutes due to repeated violations.');
+    } else if(violations[n]>=3){
+      bannedNames.push(n);
+      delete tempBans[n];
+      sysmsg('🚫 You have been permanently banned due to repeated violations.');
+    }
+    return;
+  }
+  const entry={name:myName,text:txt,color:players[myId]?.color||'#fff',admin:isAdmin};
+  addChatMsg(entry);
+  if(!botsMode&&channel)channel.publish('chat',entry);
+}
+function addChatMsg(d){
+  const log=document.getElementById('chatLog');
+  const div=document.createElement('div');div.className='cmsg';
+  const badge=d.admin?'<span style="color:#f4a261;font-size:.68rem;">[ADMIN] </span>':'';
+  div.innerHTML=`${badge}<span class="who" style="color:${d.color}">${esc(d.name)}:</span> <span style="color:#ddd">${esc(d.text)}</span>`;
+  log.appendChild(div);log.scrollTop=log.scrollHeight;
+  if(!chatOpen){document.getElementById('chatToggle').textContent='💬 Chat (new)';document.getElementById('chatToggle').style.background='#e94560';}
+}
+function sysmsg(txt){
+  const log=document.getElementById('chatLog');
+  const div=document.createElement('div');div.className='cmsg';
+  div.innerHTML=`<span style="color:#f4a261;font-size:.73rem;">⚙ ${esc(txt)}</span>`;
+  log.appendChild(div);log.scrollTop=log.scrollHeight;
+}
+function esc(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function handleCmd(cmd){
+  const p=cmd.split(' '),c=p[0].toLowerCase(),a=p.slice(1).join(' ').trim();
+  if(c==='ban'){if(!a){sysmsg('Usage: /ban [name]');return;}bannedNames.push(a.toLowerCase());Object.values(players).forEach(pl=>{if(pl.name.toLowerCase()===a.toLowerCase()&&pl.id!==myId)delete players[pl.id];});sysmsg('Banned: '+a);}
+  else if(c==='tempban'){const nm=p[1]||'',m=parseInt(p[2])||5;if(!nm){sysmsg('Usage: /tempban [name] [mins]');return;}tempBans[nm.toLowerCase()]=Date.now()+m*60000;Object.values(players).forEach(pl=>{if(pl.name.toLowerCase()===nm.toLowerCase()&&pl.id!==myId)delete players[pl.id];});sysmsg('Temp banned '+nm+' for '+m+'m');}
+  else if(c==='unban'){if(!a){sysmsg('Usage: /unban [name]');return;}bannedNames=bannedNames.filter(n=>n!==a.toLowerCase());delete tempBans[a.toLowerCase()];sysmsg('Unbanned: '+a);}
+  else if(c==='grant'){if(!a){sysmsg('Usage: /grant [name]');return;}if(!grantedAdmins.includes(a.toLowerCase()))grantedAdmins.push(a.toLowerCase());sysmsg('Granted admin: '+a);}
+  else if(c==='revoke'){if(!a){sysmsg('Usage: /revoke [name]');return;}grantedAdmins=grantedAdmins.filter(n=>n!==a.toLowerCase());sysmsg('Revoked admin: '+a);}
+  else if(c==='invisible'){adminToggleInvisible();sysmsg('Invisible: '+adminInvisible);}
+  else if(c==='role'){adminSwapRole();sysmsg('Role → '+(players[myId]?.role||'?').toUpperCase());}
+  else if(c==='wins'){const amt=parseInt(a)||99999999;saveData.wins+=amt;writeSave();refreshWins();sysmsg('Added '+amt+' wins');}
+  else if(c==='help'){sysmsg('/ban /tempban [name] [mins] /unban /grant /revoke /invisible /role /wins [amt]');}
+  else{sysmsg('Unknown command. Type /help');}
+}
+
+// ── CONFIG ────────────────────────────────────────────────────
+const TILE=40,COLS=25,ROWS=18,W=COLS*TILE,H=ROWS*TILE;
+const BASE_SPD=3,BASE_SEEK_SPD=2.6,VISION_DIST=190,VISION_ANG=Math.PI/2.4,ROUND_TIME=100;
+const COLORS=['#e94560','#00b4d8','#f4a261','#2ec4b6','#ff9f1c','#a8dadc','#f72585','#b5e48c','#ffd166','#06d6a0','#118ab2','#ef476f'];
+
+// ── STATE ─────────────────────────────────────────────────────
+let ably,channel,myId,myName,isHost=false,myRole='hider';
+let roomCode='',players={},bots=[],gameRunning=false;
+let map=[],walls=[],bushes=[],camX=0,camY=0;
+let timer=ROUND_TIME,timerInt,caught=0,totalHiders=0,botsMode=false,botSpd=2;
+
+// ── INPUT ─────────────────────────────────────────────────────
+const keys={};
+document.addEventListener('keydown',e=>keys[e.key]=true);
+document.addEventListener('keyup',e=>keys[e.key]=false);
+['du','dl','dd','dr'].forEach(id=>{
+  const el=document.getElementById(id);
+  el.addEventListener('pointerdown',e=>{keys[id]=true;e.preventDefault();});
+  el.addEventListener('pointerup',()=>keys[id]=false);
+  el.addEventListener('pointercancel',()=>keys[id]=false);
+});
+
+// ── NAV ───────────────────────────────────────────────────────
+function show(id){document.getElementById(id).style.display='block';}
+function hide(id){document.getElementById(id).style.display='none';}
+function hideAll(){['mainMenu','shopPanel','botsPanel','onlinePanel','joinPanel','roomInfo'].forEach(hide);}
+function showBots(){hideAll();show('botsPanel');}
+function saveAblyKey(){
+  const k=document.getElementById('ablyKey').value.trim();
+  if(!k){status('Paste your Ably key first');return;}
+  localStorage.setItem('hs_ablykey',k);
+  document.getElementById('ablySetup').style.display='none';
+  document.getElementById('ablyReady').style.display='block';
+}
+function resetAblyKey(){
+  localStorage.removeItem('hs_ablykey');
+  document.getElementById('ablyKey').value='';
+  document.getElementById('ablySetup').style.display='block';
+  document.getElementById('ablyReady').style.display='none';
+}
+function getAblyKey(){return localStorage.getItem('hs_ablykey')||'';}
+function showOnline(){
+  hideAll();show('onlinePanel');
+  if(getAblyKey()){document.getElementById('ablySetup').style.display='none';document.getElementById('ablyReady').style.display='block';}
+  else{document.getElementById('ablySetup').style.display='block';document.getElementById('ablyReady').style.display='none';}
+}
+function showJoin(){hideAll();show('joinPanel');}
+function backMain(){hideAll();show('mainMenu');}
+function status(t){document.getElementById('statusMsg').textContent=t;}
+
+// ── MAP ───────────────────────────────────────────────────────
+function genMap(seed){
+  let s=seed||12345;
+  function sr(){s=(s*16807)%2147483647;return(s-1)/2147483646;}
+  map=[];walls=[];bushes=[];
+  for(let r=0;r<ROWS;r++){map[r]=[];for(let c=0;c<COLS;c++){
+    if(r===0||r===ROWS-1||c===0||c===COLS-1)map[r][c]=1;
+    else if(sr()<.12)map[r][c]=1;
+    else if(sr()<.09)map[r][c]=2;
+    else map[r][c]=0;
+  }}
+  for(let r=7;r<11;r++)for(let c=11;c<14;c++)map[r][c]=0;
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const x=c*TILE,y=r*TILE;
+    if(map[r][c]===1)walls.push({x,y,w:TILE,h:TILE});
+    if(map[r][c]===2)bushes.push({x,y,w:TILE,h:TILE});
+  }
+}
+function freeSpawn(){
+  for(let i=0;i<400;i++){
+    const c=1+Math.floor(Math.random()*(COLS-2)),r=1+Math.floor(Math.random()*(ROWS-2));
+    if(map[r][c]===0)return{x:c*TILE+TILE/2,y:r*TILE+TILE/2};
+  }
+  return{x:12*TILE,y:9*TILE};
+}
+function collidesWall(cx,cy,r=12){
+  return walls.some(w=>cx+r>w.x&&cx-r<w.x+w.w&&cy+r>w.y&&cy-r<w.y+w.h)||
+         bushes.some(b=>cx+r>b.x&&cx-r<b.x+b.w&&cy+r>b.y&&cy-r<b.y+b.h);
+}
+function hasLOS(ax,ay,bx,by){
+  const steps=32;
+  for(let i=1;i<steps;i++){
+    const t=i/steps,x=ax+t*(bx-ax),y=ay+t*(by-ay);
+    if(walls.some(w=>x>w.x&&x<w.x+w.w&&y>w.y&&y<w.y+w.h))return false;
+    if(bushes.some(b=>x>b.x&&x<b.x+b.w&&y>b.y&&y<b.y+b.h))return false;
+  }
+  return true;
+}
+
+// ── BOTS ──────────────────────────────────────────────────────
+function startBotsGame(){
+  myName=document.getElementById('nameIn').value.trim()||'Player';
+  const banned=isBanned(myName);
+  if(banned&&myName.toLowerCase()!==OWNER){showMsg('🚫 You are '+banned+'.');return;}
+  const diff=document.getElementById('botDiff').value;
+  botSpd=diff==='easy'?1.4:diff==='hard'?2.8:2.0;
+  myRole=document.getElementById('botRole').value;
+  const cnt=parseInt(document.getElementById('botCount').value);
+  botsMode=true;myId='player';
+  genMap(Math.floor(Math.random()*99999));
+  players={};bots=[];
+  const sp=freeSpawn();
+  players[myId]={id:myId,name:myName,x:sp.x,y:sp.y,role:myRole,color:'#ffe066',caught:false,inBush:false,facing:0};
+  const bRole=myRole==='seeker'?'hider':'seeker';
+  for(let i=0;i<cnt;i++){
+    const bsp=freeSpawn();
+    const b={id:'bot'+i,name:'Bot '+(i+1),x:bsp.x,y:bsp.y,role:bRole,color:COLORS[i%COLORS.length],caught:false,inBush:false,facing:0,tx:bsp.x,ty:bsp.y,wt:0,hs:null};
+    bots.push(b);players[b.id]=b;
+  }
+  totalHiders=Object.values(players).filter(p=>p.role==='hider').length;
+  caught=0;checkAdmin(myName);launchGame();
+}
+function updateBots(){
+  const me=players[myId];
+  bots.forEach(b=>{
+    if(b.caught)return;
+    b.role==='hider'?updateHiderBot(b,me):updateSeekerBot(b);
+  });
+}
+function updateHiderBot(b,seeker){
+  const spd=botSpd*.85;
+  const ds=Math.hypot(b.x-seeker.x,b.y-seeker.y);
+  if(ds<120&&!b.inBush){
+    const a=Math.atan2(b.y-seeker.y,b.x-seeker.x);moveBot(b,a,spd*1.5);
+  } else if(!b.inBush){
+    b.wt--;
+    if(b.wt<=0||!b.hs){
+      if(bushes.length){let best=null,bd=9999;bushes.forEach(bsh=>{const d=Math.hypot(bsh.x+TILE/2-b.x,bsh.y+TILE/2-b.y);if(d<bd){bd=d;best=bsh;}});if(best)b.hs={x:best.x+TILE/2,y:best.y+TILE/2};}
+      b.wt=60+Math.random()*60;
+    }
+    if(b.hs){const a=Math.atan2(b.hs.y-b.y,b.hs.x-b.x);moveBot(b,a,spd);}
+  }
+  b.inBush=bushes.some(bsh=>b.x>bsh.x&&b.x<bsh.x+bsh.w&&b.y>bsh.y&&b.y<bsh.y+bsh.h);
+  clamp(b);
+}
+function updateSeekerBot(b){
+  const spd=botSpd;
+  let tgt=null,td=9999;
+  Object.values(players).forEach(p=>{
+    if(p.role!=='hider'||p.caught||p.id===b.id||p.inBush)return;
+    if(!hasLOS(b.x,b.y,p.x,p.y))return;
+    const d=Math.hypot(p.x-b.x,p.y-b.y);if(d<td){td=d;tgt=p;}
+  });
+  if(tgt){
+    moveBot(b,Math.atan2(tgt.y-b.y,tgt.x-b.x),spd);
+    if(td<22&&hasLOS(b.x,b.y,tgt.x,tgt.y)){tgt.caught=true;caught++;if(tgt.id===myId)showEndMsg('😱 You got caught!');checkWin();}
+  } else {
+    b.wt--;if(b.wt<=0){b.tx=TILE+Math.random()*(W-2*TILE);b.ty=TILE+Math.random()*(H-2*TILE);b.wt=90+Math.random()*90;}
+    moveBot(b,Math.atan2(b.ty-b.y,b.tx-b.x),spd);
+  }
+  clamp(b);
+}
+function moveBot(b,ang,spd){const nx=b.x+Math.cos(ang)*spd,ny=b.y+Math.sin(ang)*spd;if(!collidesWall(nx,ny)){b.x=nx;b.y=ny;}b.facing=ang;}
+function clamp(p){p.x=Math.max(TILE+12,Math.min(W-TILE-12,p.x));p.y=Math.max(TILE+12,Math.min(H-TILE-12,p.y));}
+
+// ── ONLINE ────────────────────────────────────────────────────
+function rndCode(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ';let s='';for(let i=0;i<4;i++)s+=c[Math.floor(Math.random()*c.length)];return s;}
+function rndColor(){return COLORS[Math.floor(Math.random()*COLORS.length)];}
+
+async function hostGame(){
+  const key=document.getElementById('ablyKey').value.trim();
+  myName=document.getElementById('nameIn').value.trim()||'Player';
+  if(!key){status('Enter Ably API key');return;}
+  const banned=isBanned(myName);if(banned&&myName.toLowerCase()!==OWNER){status('You are '+banned);return;}
+  if(!getAblyKey()){status('Save your Ably key first');return;}
+  myId='p_'+Math.random().toString(36).slice(2,8);isHost=true;botsMode=false;roomCode=rndCode();status('Connecting...');
+  try{
+    await initAbly(getAblyKey());channel=ably.channels.get('hs_'+roomCode);
+    const col=rndColor();players={};
+    players[myId]={id:myId,name:myName,x:12*TILE,y:9*TILE,role:'hider',color:col,caught:false,inBush:false,facing:0};
+    subscribe();hideAll();show('roomInfo');
+    document.getElementById('codeDisplay').textContent=roomCode;
+    document.getElementById('modeSelect').style.display='block';
+    updatePList();status('Share the code!');
+    channel.publish('join',{id:myId,name:myName,color:col});
+    setInterval(()=>{if(!gameRunning)channel.publish('join',{id:myId,name:myName,color:col});},5000);
+    checkAdmin(myName);
+  }catch(e){status('Failed: '+e.message);}
+}
+async function joinGame(){
+  const key=document.getElementById('ablyKey').value.trim();
+  myName=document.getElementById('nameIn').value.trim()||'Player';
+  const code=document.getElementById('codeIn').value.trim().toUpperCase();
+  if(!key||!code){status('Enter key and code');return;}
+  const banned=isBanned(myName);if(banned&&myName.toLowerCase()!==OWNER){status('You are '+banned);return;}
+  if(!getAblyKey()){status('Save your Ably key first');return;}
+  myId='p_'+Math.random().toString(36).slice(2,8);isHost=false;botsMode=false;roomCode=code;status('Joining...');
+  try{
+    await initAbly(getAblyKey());channel=ably.channels.get('hs_'+roomCode);
+    const col=rndColor();players={};
+    players[myId]={id:myId,name:myName,x:12*TILE,y:9*TILE,role:'hider',color:col,caught:false,inBush:false,facing:0};
+    subscribe();hideAll();show('roomInfo');
+    document.getElementById('codeDisplay').textContent=roomCode;
+    updatePList();status('Waiting for host...');
+    channel.publish('join',{id:myId,name:myName,color:col});
+    setInterval(()=>{if(!gameRunning)channel.publish('join',{id:myId,name:myName,color:col});},5000);
+    checkAdmin(myName);
+  }catch(e){status('Failed: '+e.message);}
+}
+async function initAbly(key){ably=new Ably.Realtime({key,clientId:myId});await new Promise(r=>ably.connection.once('connected',r));}
+
+function subscribe(){
+  channel.subscribe('state',msg=>{
+    const d=msg.data;if(d.pid===myId)return;
+    if(!players[d.pid])players[d.pid]={id:d.pid,name:d.name,x:d.x,y:d.y,role:d.role,color:d.color,caught:false,inBush:false,facing:0};
+    else Object.assign(players[d.pid],{x:d.x,y:d.y,role:d.role,caught:d.caught,inBush:d.inBush,facing:d.facing||0});
+    updatePList();
+  });
+  channel.subscribe('join',msg=>{
+    const d=msg.data;if(d.id===myId)return;
+    if(!players[d.id])players[d.id]={id:d.id,name:d.name,x:12*TILE,y:9*TILE,role:'hider',color:d.color,caught:false,inBush:false,facing:0};
+    updatePList();
+  });
+  channel.subscribe('start',msg=>{
+    genMap(msg.data.seed);myRole=players[myId].role;
+    const sp=freeSpawn();players[myId].x=sp.x;players[myId].y=sp.y;players[myId].caught=false;
+    totalHiders=Object.values(players).filter(p=>p.role==='hider').length;caught=0;launchGame();
+  });
+  channel.subscribe('caught',msg=>{
+    const d=msg.data;if(players[d.id])players[d.id].caught=true;
+    if(d.id===myId)showEndMsg('😱 You got caught!');
+    caught++;checkWin();
+  });
+  channel.subscribe('win',msg=>endGame(msg.data.winner));
+  channel.subscribe('chat',msg=>{
+    if(msg.data.name===myName)return;
+    if(!isClean(msg.data.text)){
+      violations[n]=(violations[n]||0)+1;
+      sysmsg(`⚠️ ${esc(msg.data.name)}'s message was removed: inappropriate content.`);
+      if(violations[n]===2){
+        tempBans[n]=Date.now()+15*60000;
+        Object.values(players).forEach(p=>{if(p.name.toLowerCase()===n)delete players[p.id];});
+        sysmsg(`🚫 ${esc(msg.data.name)} has been temp banned for 15 minutes.`);
+      } else if(violations[n]>=3){
+        bannedNames.push(n);
+        delete tempBans[n];
+        Object.values(players).forEach(p=>{if(p.name.toLowerCase()===n)delete players[p.id];});
+        sysmsg(`🚫 ${esc(msg.data.name)} has been permanently banned.`);
+      }
+      return;
+    }
+    addChatMsg(msg.data);
+  });
+}
+function startOnlineGame(role){
+  myRole=role;players[myId].role=role;
+  const seed=Math.floor(Math.random()*99999);
+  channel.publish('start',{seed});genMap(seed);
+  const sp=freeSpawn();players[myId].x=sp.x;players[myId].y=sp.y;players[myId].caught=false;
+  totalHiders=Object.values(players).filter(p=>p.role==='hider').length;caught=0;launchGame();
+}
+function updatePList(){
+  const ids=Object.keys(players);
+  document.getElementById('playerList').innerHTML=
+    `<div style="font-size:.75rem;color:#666;">Players (${ids.length}):</div>`+
+    ids.map(id=>`<div style="color:${players[id].color}">${players[id].name}${id===myId?' (you)':''}</div>`).join('');
+}
+
+// ── GAME CORE ─────────────────────────────────────────────────
+const canvas=document.getElementById('gameCanvas');
+const ctx=canvas.getContext('2d');
+let lastPub=0;
+
+function launchGame(){
+  document.getElementById('ui').style.display='none';
+  canvas.style.display='block';canvas.width=window.innerWidth;canvas.height=window.innerHeight;
+  document.getElementById('hud').classList.add('on');
+  document.getElementById('dpad').style.display='block';
+  document.getElementById('chatToggle').style.display='block';
+  // 5 second countdown before game starts
+  let countdown=5;
+  showEndMsg('Game starts in '+countdown+'...');
+  document.querySelector('#msg button').style.display='none';
+  const cdInt=setInterval(()=>{
+    countdown--;
+    if(countdown<=0){
+      clearInterval(cdInt);
+      document.getElementById('msg').style.display='none';
+      gameRunning=true;timer=ROUND_TIME;
+      timerInt=setInterval(()=>{timer--;if(timer<=0){clearInterval(timerInt);onTimeUp();}},1000);
+      requestAnimationFrame(loop);
+    } else {
+      document.getElementById('msg').innerHTML='Game starts in '+countdown+'...';
+    }
+  },1000);
+}
+function loop(){
+  if(!gameRunning)return;
+  requestAnimationFrame(loop);
+  updatePlayer();
+  if(botsMode)updateBots();
+  render();
+  if(!botsMode){
+    const now=Date.now();
+    if(now-lastPub>50){
+      lastPub=now;const me=players[myId];
+      channel.publish('state',{pid:myId,name:myName,x:me.x,y:me.y,role:me.role,color:me.color,caught:me.caught,inBush:me.inBush,facing:me.facing});
+    }
+  }
+}
+function updatePlayer(){
+  const me=players[myId];if(!me||me.caught)return;
+  const spd=(me.role==='seeker'?BASE_SEEK_SPD:BASE_SPD)+getSpeedBonus();
+  let dx=0,dy=0;
+  if(keys['ArrowUp']||keys['w']||keys['W']||keys['du'])dy=-spd;
+  if(keys['ArrowDown']||keys['s']||keys['S']||keys['dd'])dy=spd;
+  if(keys['ArrowLeft']||keys['a']||keys['A']||keys['dl'])dx=-spd;
+  if(keys['ArrowRight']||keys['d']||keys['D']||keys['dr'])dx=spd;
+  if(dx&&dy){dx*=.707;dy*=.707;}
+  if(!collidesWall(me.x+dx,me.y+dy)){me.x+=dx;me.y+=dy;}
+  clamp(me);
+  if(dx||dy)me.facing=Math.atan2(dy,dx);
+  me.inBush=adminInvisible||bushes.some(b=>me.x>b.x&&me.x<b.x+b.w&&me.y>b.y&&me.y<b.y+b.h);
+  if(me.role==='seeker'&&!me.caught){
+    Object.values(players).forEach(p=>{
+      if(p.id===myId||p.role!=='hider'||p.caught||p.inBush)return;
+      if(!hasLOS(me.x,me.y,p.x,p.y))return;
+      if(Math.hypot(p.x-me.x,p.y-me.y)<26){
+        p.caught=true;caught++;
+        if(!botsMode)channel.publish('caught',{id:p.id});
+        checkWin();
+      }
+    });
+  }
+  camX=Math.max(0,Math.min(W-canvas.width,me.x-canvas.width/2));
+  camY=Math.max(0,Math.min(H-canvas.height,me.y-canvas.height/2));
+}
+
+function render(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.save();ctx.translate(-camX,-camY);
+  ctx.fillStyle='#1a3a2a';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#1e4a30';ctx.lineWidth=1;
+  for(let r=0;r<=ROWS;r++){ctx.beginPath();ctx.moveTo(0,r*TILE);ctx.lineTo(W,r*TILE);ctx.stroke();}
+  for(let c=0;c<=COLS;c++){ctx.beginPath();ctx.moveTo(c*TILE,0);ctx.lineTo(c*TILE,H);ctx.stroke();}
+  walls.forEach(w=>{ctx.fillStyle='#2c4a3e';ctx.fillRect(w.x,w.y,w.w,w.h);ctx.fillStyle='#3a5c4e';ctx.fillRect(w.x+2,w.y+2,w.w-4,4);ctx.strokeStyle='#1a3028';ctx.lineWidth=1;ctx.strokeRect(w.x,w.y,w.w,w.h);});
+
+  const me=players[myId];
+  const iAmSeeker=me&&me.role==='seeker';
+  if(me&&me.role==='seeker'&&!me.caught)drawCone(me);
+  bots.forEach(b=>{if(b.role==='seeker'&&!b.caught)drawCone(b);});
+
+  Object.values(players).forEach(p=>{
+    if(p.id===myId)return;
+    if(p.inBush&&p.role==='hider'&&!iAmSeeker)return;
+    if(p.role==='hider'&&iAmSeeker&&!p.inBush&&!hasLOS(me.x,me.y,p.x,p.y))return;
+    drawStick(p);
+  });
+
+  // bushes on top
+  bushes.forEach(b=>{
+    ctx.fillStyle='#2d6a4f';ctx.beginPath();ctx.ellipse(b.x+b.w/2,b.y+b.h/2,b.w/2,b.h/2,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#40916c';ctx.beginPath();ctx.ellipse(b.x+b.w/2-4,b.y+b.h/2-4,b.w/3,b.h/3,0,0,Math.PI*2);ctx.fill();
+  });
+
+  if(me){if(me.inBush)ctx.globalAlpha=.55;drawStick(me);ctx.globalAlpha=1;}
+  ctx.restore();
+
+  if(me){
+    const shoe=saveData.equipped?SHOES.find(x=>x.id===saveData.equipped):null;
+    document.getElementById('hudLeft').textContent=`${myName} | ${me.role.toUpperCase()}${me.inBush?' 🌿':''}${shoe?' '+shoe.icon+'+'+shoe.bonus:''}`;
+    document.getElementById('hudRight').textContent=`🏆${saveData.wins}  ⏱${timer}s  Caught:${caught}/${totalHiders}`;
+  }
+}
+
+function drawStick(p){
+  const x=p.x,y=p.y,col=p.color||'#fff';
+  ctx.save();if(p.caught)ctx.globalAlpha=.35;
+  ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.lineCap='round';
+  ctx.beginPath();ctx.arc(x,y-18,7,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x,y-11);ctx.lineTo(x,y+4);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x-9,y-4);ctx.lineTo(x+9,y-4);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x,y+4);ctx.lineTo(x-7,y+16);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x,y+4);ctx.lineTo(x+7,y+16);ctx.stroke();
+  ctx.fillStyle=col;ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+  ctx.fillText(p.role==='seeker'?'👁':p.caught?'❌':'🫥',x,y-30);
+  ctx.fillStyle='#fff';ctx.font='9px sans-serif';ctx.fillText(p.name,x,y+28);
+  ctx.restore();
+}
+function drawCone(p){
+  ctx.save();ctx.globalAlpha=.15;ctx.fillStyle='#ffe066';
+  ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.arc(p.x,p.y,VISION_DIST,p.facing-VISION_ANG/2,p.facing+VISION_ANG/2);
+  ctx.closePath();ctx.fill();ctx.restore();
+}
+
+function checkWin(){
+  if(totalHiders>0&&caught>=totalHiders){
+    clearInterval(timerInt);
+    if(!botsMode&&isHost)channel.publish('win',{winner:'seeker'});
+    endGame('seeker');
+  }
+}
+function onTimeUp(){if(!botsMode&&isHost)channel.publish('win',{winner:'hiders'});endGame('hiders');}
+function endGame(winner){
+  if(!gameRunning)return;
+  gameRunning=false;clearInterval(timerInt);
+  const me=players[myId];
+  let won=false,txt='';
+  if(winner==='seeker'){won=me?.role==='seeker';txt=won?'🎉 You win!\nAll hiders caught!':'😢 Seeker wins!';}
+  else{won=me?.role==='hider'&&!me?.caught;txt=won?'🎉 You survived!\nHiders win!':'⏰ Time ran out!\nHiders win.';}
+  if(won){addWin();txt+='\n🏆 +1 Win!';}
+  showEndMsg(txt);
+}
+function showEndMsg(txt){
+  const el=document.getElementById('msg');
+  el.style.display='block';
+  el.innerHTML=txt.replace(/\n/g,'<br>')+'<br><button onclick="location.reload()">🏠 Menu</button>';
+  gameRunning=false;
+}
+function showMsg(txt){
+  document.getElementById('ui').style.display='none';
+  const el=document.getElementById('msg');
+  el.style.display='block';
+  el.innerHTML=txt+'<br><button onclick="location.reload()">🏠 Menu</button>';
+}
+
+window.addEventListener('resize',()=>{if(gameRunning){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}});
+loadSave();
+</script>
+</body>
+</html>
