@@ -455,6 +455,7 @@ function saveAblyKey(){
   localStorage.setItem('hs_ablykey',k);
   document.getElementById('ablySetup').style.display='none';
   document.getElementById('ablyReady').style.display='block';
+  status('Key saved! You can now host or join.');
 }
 function resetAblyKey(){
   localStorage.removeItem('hs_ablykey');
@@ -465,8 +466,14 @@ function resetAblyKey(){
 function getAblyKey(){return localStorage.getItem('hs_ablykey')||'';}
 function showOnline(){
   hideAll();show('onlinePanel');
-  if(getAblyKey()){document.getElementById('ablySetup').style.display='none';document.getElementById('ablyReady').style.display='block';}
-  else{document.getElementById('ablySetup').style.display='block';document.getElementById('ablyReady').style.display='none';}
+  const saved=getAblyKey();
+  if(saved){
+    document.getElementById('ablySetup').style.display='none';
+    document.getElementById('ablyReady').style.display='block';
+  } else {
+    document.getElementById('ablySetup').style.display='block';
+    document.getElementById('ablyReady').style.display='none';
+  }
 }
 function showJoin(){hideAll();show('joinPanel');}
 function backMain(){hideAll();show('mainMenu');}
@@ -602,10 +609,11 @@ async function hostGame(){
   }catch(e){status('Failed: '+e.message);}
 }
 async function joinGame(){
-  const key=document.getElementById('ablyKey').value.trim();
   myName=document.getElementById('nameIn').value.trim()||'Player';
+  const key=getAblyKey()||document.getElementById('ablyKey').value.trim();
   const code=document.getElementById('codeIn').value.trim().toUpperCase();
-  if(!key||!code){status('Enter key and code');return;}
+  if(!key){status('Paste your Ably key and click Save first');return;}
+  if(!code){status('Enter a room code');return;}
   const banned=isBanned(myName);if(banned&&myName.toLowerCase()!==OWNER){status('You are '+banned);return;}
   if(!getAblyKey()){status('Save your Ably key first');return;}
   myId='p_'+Math.random().toString(36).slice(2,8);isHost=false;botsMode=false;roomCode=code;status('Joining...');
@@ -634,6 +642,8 @@ function subscribe(){
     const d=msg.data;if(d.id===myId)return;
     if(!players[d.id])players[d.id]={id:d.id,name:d.name,x:12*TILE,y:9*TILE,role:'hider',color:d.color,caught:false,inBush:false,facing:0};
     updatePList();
+    // if host, re-announce presence so joiner knows host exists
+    if(isHost)channel.publish('join',{id:myId,name:myName,color:players[myId].color});
   });
   channel.subscribe('start',msg=>{
     genMap(msg.data.seed);myRole=players[myId].role;
